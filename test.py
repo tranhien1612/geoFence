@@ -112,8 +112,13 @@ def get_country(folder_path: str, lat: float, lon: float) -> str:
     return None
 
 class NFZMonitor:
-    def __init__(self, country_path: str, connection_string: str, warning_distance: float = 500.0, break_distance: float = 100.0):
-        self.country_path = country_path
+    def __init__(self, log_path: str, geo_path: str, connection_string: str, warning_distance: float = 500.0, break_distance: float = 100.0):
+        self.log_path = log_path
+
+        self.geo_path = geo_path
+        self.fence_path = geo_path + "fence/"
+        self.country_path = geo_path + "countries/"
+
         self.connection_string = connection_string
         self.warning_distance = warning_distance  # meters
         self.break_distance = break_distance      # meters
@@ -134,7 +139,7 @@ class NFZMonitor:
 
         # Log
         self.enable_log = True
-        self.log_file = f"/home/ubuntu/src/geoFence/log/nfz_monitor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        self.log_file = log_path + f"nfz_monitor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         self.log_queue = queue.Queue()
         self.log_thread = threading.Thread(target=self._log_worker, daemon=True)
         self.log_thread.start()
@@ -174,7 +179,7 @@ class NFZMonitor:
                 self.country_name = get_country(self.country_path, self.current_lat, self.current_lon)
                 self.log(f"Position ({self.current_lat}, {self.current_lon}) from {self.country_name}")
             else:
-                geojson_path = "/home/ubuntu/src/geoFence/geoData/fence/" + self.country_name + ".geojson"
+                geojson_path = self.fence_path + self.country_name + ".geojson"
                 self.nfz_polygons = load_geojson_polygons(geojson_path)
                 self.log(f"Loaded {len(self.nfz_polygons)} NFZ polygons from {self.country_name}.geojson")
 
@@ -473,7 +478,8 @@ class NFZMonitor:
 
 def main():
     monitor = NFZMonitor(
-        country_path = "/home/ubuntu/src/geoFence/geoData/countries",
+        log_path = "/home/ubuntu/src/geoFence/log/",
+        geo_path = "/home/ubuntu/src/geoFence/geoData/",
         connection_string = "udp:127.0.0.1:14550"
     )
     monitor.start_monitoring()
